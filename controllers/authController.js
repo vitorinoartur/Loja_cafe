@@ -1,44 +1,54 @@
-// controllers/authController.js - AZURE SQL DATABASE
+// controllers/authController.js - COM SUPORTE A USERNAME
 
 const sql = require('mssql');
 const pool = require('../config/database');
-const bcryptjs = require('bcryptjs');  // ← MUDOU AQUI
+const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 console.log('✅ authController.js carregado');
 
-// LOGIN
+// LOGIN - Aceita username OU email
 exports.login = async (req, res) => {
   try {
     console.log('🔑 [AUTH LOGIN] Recebendo requisição...');
     console.log('🔑 [AUTH LOGIN] Body:', req.body);
 
-    const { email, senha } = req.body;
+    const { username, email, password, senha } = req.body;
 
-    if (!email || !senha) {
-      console.log('❌ [AUTH LOGIN] Email ou senha faltando');
-      return res.status(400).json({ error: 'Email e senha são obrigatórios' });
+    // Aceita username E password OU email E senha
+    const loginField = username || email;
+    const loginPassword = password || senha;
+
+    if (!loginField || !loginPassword) {
+      console.log('❌ [AUTH LOGIN] Credenciais faltando');
+      return res.status(400).json({ error: 'Username/Email e Password são obrigatórios' });
     }
 
-    console.log('🔍 [AUTH LOGIN] Buscando usuário:', email);
+    console.log('🔍 [AUTH LOGIN] Buscando usuário...');
+    
+    // Busca por username OU email
     const result = await pool.request()
-      .input('email', sql.VarChar, email)
-      .query('SELECT id, username, email, password FROM usuarios WHERE email = @email');
+      .input('loginField', sql.VarChar, loginField)
+      .query(`
+        SELECT id, username, email, password 
+        FROM usuarios 
+        WHERE username = @loginField OR email = @loginField
+      `);
 
     if (result.recordset.length === 0) {
       console.log('❌ [AUTH LOGIN] Usuário não encontrado');
-      return res.status(401).json({ error: 'Email ou senha incorretos' });
+      return res.status(401).json({ error: 'Usuário ou senha incorretos' });
     }
 
     const usuario = result.recordset[0];
     console.log('✅ [AUTH LOGIN] Usuário encontrado:', usuario.username);
 
     console.log('🔐 [AUTH LOGIN] Verificando senha...');
-    const senhaValida = await bcryptjs.compare(senha, usuario.password);
+    const senhaValida = await bcryptjs.compare(loginPassword, usuario.password);
 
     if (!senhaValida) {
       console.log('❌ [AUTH LOGIN] Senha inválida');
-      return res.status(401).json({ error: 'Email ou senha incorretos' });
+      return res.status(401).json({ error: 'Usuário ou senha incorretos' });
     }
 
     console.log('✅ [AUTH LOGIN] Senha válida!');
