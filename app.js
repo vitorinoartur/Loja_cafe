@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const dotenv = require('dotenv');
+const path = require('path');
 
 dotenv.config();
 
@@ -19,7 +20,7 @@ const authRoutes = require('./routes/auth');
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // ===== ROTAS DA API =====
 app.use('/api/usuarios', usuarioRoutes);
@@ -30,7 +31,12 @@ app.use('/api/auth', authRoutes);
 
 // ===== ROTA RAIZ =====
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/public/index.html');
+  const indexPath = path.join(__dirname, 'public', 'index.html');
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      res.send('Aplicação Loja Café rodando no Azure!');
+    }
+  });
 });
 
 // ===== TRATAMENTO DE ERROS =====
@@ -40,7 +46,8 @@ app.use((err, req, res, next) => {
 });
 
 // ===== INICIAR SERVIDOR =====
-const PORT = process.env.SERVER_PORT || 3000;
+// IMPORTANTE: no Azure App Service, use process.env.PORT
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Servidor rodando em http://localhost:${PORT}`);
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
