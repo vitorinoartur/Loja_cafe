@@ -2,7 +2,7 @@
 
 const sql = require('mssql');
 const pool = require('../config/database');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcrypts');
 const jwt = require('jsonwebtoken');
 
 console.log('✅ usuarioController.js carregado');
