@@ -1,8 +1,8 @@
-// controllers/usuarioController.js - AZURE SQL DATABASE
+// controllers/usuarioController.js - AZURE SQL DATABASE (com bcryptjs)
 
 const sql = require('mssql');
 const pool = require('../config/database');
-const bcrypt = require('bcrypts');
+const bcryptjs = require('bcryptjs');  // ← MUDOU AQUI
 const jwt = require('jsonwebtoken');
 
 console.log('✅ usuarioController.js carregado');
@@ -42,9 +42,9 @@ exports.registrar = async (req, res) => {
       return res.status(400).json({ error: 'Username já existe' });
     }
 
-    // Hash senha
+    // Hash senha com bcryptjs
     console.log('💾 [REGISTRAR] Fazendo hash da senha...');
-    const senhaHash = await bcrypt.hash(senha, 10);
+    const senhaHash = await bcryptjs.hash(senha, 10);
 
     // Criar usuário
     console.log('💾 [REGISTRAR] Criando usuário...');
@@ -105,9 +105,9 @@ exports.login = async (req, res) => {
     const usuario = result.recordset[0];
     console.log('✅ [LOGIN] Usuário encontrado:', usuario.username);
 
-    // Verificar senha
+    // Verificar senha com bcryptjs
     console.log('🔐 [LOGIN] Verificando senha...');
-    const senhaValida = await bcrypt.compare(senha, usuario.password);
+    const senhaValida = await bcryptjs.compare(senha, usuario.password);
     console.log('🔐 [LOGIN] Senha válida?', senhaValida ? 'SIM' : 'NÃO');
     
     if (!senhaValida) {

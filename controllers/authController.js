@@ -2,12 +2,12 @@
 
 const sql = require('mssql');
 const pool = require('../config/database');
-const bcrypt = require('bcrypt');
+const bcryptjs = require('bcryptjs');  // ← MUDOU AQUI
 const jwt = require('jsonwebtoken');
 
 console.log('✅ authController.js carregado');
 
-// LOGIN - Autenticação via email e senha
+// LOGIN
 exports.login = async (req, res) => {
   try {
     console.log('🔑 [AUTH LOGIN] Recebendo requisição...');
@@ -34,7 +34,7 @@ exports.login = async (req, res) => {
     console.log('✅ [AUTH LOGIN] Usuário encontrado:', usuario.username);
 
     console.log('🔐 [AUTH LOGIN] Verificando senha...');
-    const senhaValida = await bcrypt.compare(senha, usuario.password);
+    const senhaValida = await bcryptjs.compare(senha, usuario.password);
 
     if (!senhaValida) {
       console.log('❌ [AUTH LOGIN] Senha inválida');
@@ -66,7 +66,7 @@ exports.login = async (req, res) => {
   }
 };
 
-// VERIFY TOKEN - Verificar se token é válido
+// VERIFY TOKEN
 exports.verifyToken = (req, res) => {
   try {
     console.log('🔐 [VERIFY] Verificando token...');
@@ -80,10 +80,7 @@ exports.verifyToken = (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'sua_chave_secreta');
     console.log('✅ [VERIFY] Token válido:', decoded.email);
 
-    res.json({ 
-      valid: true, 
-      user: decoded 
-    });
+    res.json({ valid: true, user: decoded });
 
   } catch (err) {
     console.error('❌ [VERIFY] Token inválido:', err.message);
@@ -91,7 +88,7 @@ exports.verifyToken = (req, res) => {
   }
 };
 
-// LOGOUT - Logout (opcional, pois JWT não precisa de logout no backend)
+// LOGOUT
 exports.logout = (req, res) => {
   try {
     console.log('🚪 [LOGOUT] Usuário:', req.user?.email);
@@ -101,7 +98,7 @@ exports.logout = (req, res) => {
   }
 };
 
-// REFRESH TOKEN - Renovar token
+// REFRESH TOKEN
 exports.refreshToken = (req, res) => {
   try {
     console.log('🔄 [REFRESH] Renovando token...');
