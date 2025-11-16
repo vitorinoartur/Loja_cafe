@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>☕ Loja de Café Vitorinos</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- HEADER -->
+  <header class="header">
+    <div class="logo">☕ Café Vitorinos</div>
+    <nav class="nav">
+      <a href="#home">Home</a>
+      <a href="#produtos">Produtos</a>
+      <a href="#contato">Contato</a>
+    </nav>
+    <div class="header-actions">
+      <div class="carrinho-icon" onclick="abrirCarrinho()">
+        🛒 <span id="totalCarrinho">0</span>
+      </div>
+      <button class="btn-usuario" id="btnUsuario" onclick="abrirLoginModal()">👤 Login</button>
+      <button class="btn-usuario" id="btnSair" onclick="logout()" style="display: none;">👤 Sair</button>
+    </div>
+  </header>
+
+  <!-- HERO SECTION -->
+  <section class="hero">
+    <div class="hero-content">
+      <h1>Café Vitorinos</h1>
+      <p>Qualidade e sabor em cada xícara</p>
+      <button class="btn-hero" onclick="document.getElementById('produtos').scrollIntoView()">
+        Ver Produtos
+      </button>
+    </div>
+  </section>
+
+  <!-- FILTROS DE CATEGORIA -->
+  <section class="filtros">
+    <button class="filtro-btn active" onclick="filtrarPorCategoria('Todos')">Todos</button>
+    <button class="filtro-btn" onclick="filtrarPorCategoria('Forte')">Café Forte</button>
+    <button class="filtro-btn" onclick="filtrarPorCategoria('Premium')">Premium</button>
+    <button class="filtro-btn" onclick="filtrarPorCategoria('Suave')">Café Suave</button>
+  </section>
+
+  <!-- GRID DE PRODUTOS -->
+  <section id="produtos" class="produtos">
+    <h2>Nossos Cafés</h2>
+    <div class="grid-produtos" id="gridProdutos"></div>
+  </section>
+
+  <!-- MODAL DE LOGIN/REGISTRO -->
+  <div id="modalLogin" class="modal">
+    <div class="modal-content modal-login">
+      <span class="close" onclick="fecharLoginModal()">&times;</span>
+      
+      <!-- FORM DE LOGIN -->
+      <div id="loginForm">
+        <h2>Login</h2>
+        <form onsubmit="handleLogin(event)">
+          <input type="email" id="emailLogin" placeholder="Email" required>
+          <input type="password" id="senhaLogin" placeholder="Senha" required>
+          <button type="submit" class="btn-login">Entrar</button>
+          <p id="loginError" class="error-msg"></p>
+        </form>
+        <p>Não tem conta? <a href="#" onclick="mostrarRegistro(); return false;">Registre-se aqui</a></p>
+      </div>
+
+      <!-- FORM DE REGISTRO -->
+      <div id="registroForm" style="display: none;">
+        <h2>Criar Conta</h2>
+        <form onsubmit="handleRegistro(event)">
+          <input type="text" id="usernameRegistro" placeholder="Username" required minlength="3">
+          <input type="email" id="emailRegistro" placeholder="Email" required>
+          <input type="password" id="senhaRegistro" placeholder="Senha (mínimo 6 caracteres)" required minlength="6">
+          <input type="tel" id="telefoneRegistro" placeholder="Telefone (opcional)">
+          <button type="submit" class="btn-login">Registrar</button>
+          <p id="registroError" class="error-msg"></p>
+        </form>
+        <p>Já tem conta? <a href="#" onclick="mostrarLogin(); return false;">Faça login aqui</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARRINHO MODAL -->
+  <div id="modalCarrinho" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="fecharCarrinho()">&times;</span>
+      <h2>🛒 Seu Carrinho</h2>
+      <div id="itensCarrinho" class="itens-carrinho"></div>
+      <div class="total-carrinho">
+        <strong>Total: R$ <span id="totalPrice">0.00</span></strong>
+      </div>
+      <button class="btn-comprar" onclick="irParaCheckout()">Ir para Checkout</button>
+    </div>
+  </div>
+
+  <!-- MODAL DE CHECKOUT (Endereço) -->
+  <div id="modalCheckout" class="modal">
+    <div class="modal-content modal-checkout">
+      <span class="close" onclick="fecharCheckout()">&times;</span>
+      <h2>📍 Endereço de Entrega</h2>
+      
+      <div id="enderecosExistentes" style="margin-bottom: 20px;">
+        <h3>Seus Endereços</h3>
+        <div id="listaEnderecos"></div>
+        <button type="button" class="btn-novo-endereco" onclick="mostrarFormEndereco()">+ Novo Endereço</button>
+      </div>
+
+      <div id="formNovoEndereco" style="display: none;">
+        <h3>Adicionar Novo Endereço</h3>
+        <form onsubmit="handleSalvarEndereco(event)">
+          <input type="text" id="cep" placeholder="CEP" required>
+          <input type="text" id="rua" placeholder="Rua" required>
+          <input type="text" id="numero" placeholder="Número" required>
+          <input type="text" id="complemento" placeholder="Complemento (opcional)">
+          <input type="text" id="bairro" placeholder="Bairro" required>
+          <input type="text" id="cidade" placeholder="Cidade" required>
+          <input type="text" id="estado" placeholder="Estado (UF)" maxlength="2" required>
+          <button type="submit" class="btn-salvar">Salvar Endereço</button>
+          <button type="button" class="btn-cancelar" onclick="esconderFormEndereco()">Cancelar</button>
+        </form>
+      </div>
+
+      <div style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
+        <h2>💳 Forma de Pagamento</h2>
+        <div id="formaPagamento">
+          <label>
+            <input type="radio" name="pagamento" value="credito" checked>
+            Cartão de Crédito
+          </label>
+          <label>
+            <input type="radio" name="pagamento" value="debito">
+            Cartão de Débito
+          </label>
+        </div>
+
+        <div id="dadosPagamento" style="margin-top: 20px;">
+          <input type="text" id="nomeCartao" placeholder="Nome no Cartão" required>
+          <input type="text" id="numeroCartao" placeholder="Número do Cartão" maxlength="16" pattern="[0-9]{16}" required>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <input type="text" id="validadeCartao" placeholder="MM/AA" maxlength="5" pattern="[0-9]{2}/[0-9]{2}" required>
+            <input type="text" id="cvvCartao" placeholder="CVV" maxlength="3" pattern="[0-9]{3}" required>
+          </div>
+        </div>
+
+        <button class="btn-finalizar" onclick="finalizarPedido()">Finalizar Pedido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <p>&copy; 2025 Café Orfeu. Todos os direitos reservados.</p>
+    <a href="admin.html" class="admin-link">🔐 Admin</a>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

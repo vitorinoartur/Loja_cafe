@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔐 Admin - Loja de Café</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- HEADER ADMIN -->
+  <header class="header-admin">
+    <div class="logo">☕ Café Orfeu - Admin</div>
+    <button class="btn-logout" onclick="logout()">Sair</button>
+  </header>
+
+  <!-- CONTAINER ADMIN -->
+  <div id="loginContainer" class="login-container">
+    <div class="login-box">
+      <h2>Login - Painel de Administração</h2>
+      <form onsubmit="handleLogin(event)">
+        <input type="text" id="username" placeholder="Usuário" required>
+        <input type="password" id="password" placeholder="Senha" required>
+        <button type="submit" class="btn-login">Entrar</button>
+      </form>
+      <p id="loginError" class="error-msg"></p>
+    </div>
+  </div>
+
+  <!-- PAINEL ADMIN (oculto até login) -->
+  <div id="adminPanel" class="admin-panel" style="display: none;">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <ul>
+        <li class="menu-item active" onclick="showSection('dashboard')">📊 Dashboard</li>
+        <li class="menu-item" onclick="showSection('gerenciar')">📋 Gerenciar Cafés</li>
+        <li class="menu-item" onclick="showSection('adicionar')">➕ Adicionar Café</li>
+      </ul>
+    </aside>
+
+    <!-- CONTEÚDO ADMIN -->
+    <main class="admin-content">
+      <!-- Mensagem de sucesso/erro -->
+      <div id="messageBox" class="message"></div>
+
+      <!-- DASHBOARD -->
+      <section id="dashboard" class="section active">
+        <h2>Dashboard</h2>
+        <div class="dashboard-stats">
+          <div class="stat-card">
+            <h3>Total de Cafés</h3>
+            <div class="stat-number" id="totalCafes">0</div>
+          </div>
+          <div class="stat-card">
+            <h3>Cafés Fortes</h3>
+            <div class="stat-number" id="cafeForte">0</div>
+          </div>
+          <div class="stat-card">
+            <h3>Cafés Premium</h3>
+            <div class="stat-number" id="cafePremium">0</div>
+          </div>
+          <div class="stat-card">
+            <h3>Cafés Suaves</h3>
+            <div class="stat-number" id="cafeSuave">0</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GERENCIAR CAFÉS -->
+      <section id="gerenciar" class="section">
+        <h2>Gerenciar Cafés</h2>
+        <table id="tabelaCafes" class="tabela-admin">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nome</th>
+              <th>Categoria</th>
+              <th>Preço</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaBody">
+            <!-- Cafés carregados aqui -->
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ADICIONAR/EDITAR CAFÉ -->
+      <section id="adicionar" class="section">
+        <h2>Adicionar/Editar Café</h2>
+        <form id="formCafe" onsubmit="handleSaveCafe(event)" class="form-admin">
+          <input type="hidden" id="cafeId" value="">
+
+          <div class="form-group">
+            <label for="nome">Nome do Café *</label>
+            <input type="text" id="nome" placeholder="Ex: Café Forte Orfeu" required>
+          </div>
+
+          <div class="form-group">
+            <label for="categoria">Categoria *</label>
+            <select id="categoria" required>
+              <option value="">Selecione uma categoria</option>
+              <option value="Forte">Café Forte</option>
+              <option value="Premium">Premium</option>
+              <option value="Suave">Café Suave</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="descricao">Descrição *</label>
+            <textarea id="descricao" placeholder="Descreva o café..." required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="preco">Preço (R$) *</label>
+            <input type="number" id="preco" placeholder="42.50" step="0.01" required>
+          </div>
+
+          <div class="form-group">
+            <label for="imagem">URL da Imagem</label>
+            <input type="url" id="imagem" placeholder="https://...">
+          </div>
+
+          <div class="form-group">
+            <label for="torra">Tipo de Torra *</label>
+            <select id="torra" required>
+              <option value="">Selecione</option>
+              <option value="Clara">Clara</option>
+              <option value="Média">Média</option>
+              <option value="Escura">Escura</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="intensidade">Intensidade (1-10) *</label>
+            <input type="number" id="intensidade" min="1" max="10" required>
+          </div>
+
+          <div class="form-group">
+            <label for="estoque">Estoque *</label>
+            <input type="number" id="estoque" placeholder="100" required>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-salvar">Salvar Café</button>
+            <button type="button" class="btn-cancelar" onclick="resetForm()">Cancelar</button>
+          </div>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
