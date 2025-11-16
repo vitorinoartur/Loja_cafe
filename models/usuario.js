@@ -1,6 +1,6 @@
 // models/usuario.js
 const pool = require('../config/database');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 class Usuario {
   static async create(usuario) {
