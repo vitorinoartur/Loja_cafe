@@ -20,6 +20,8 @@ const authRoutes = require('./routes/auth');
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Servir arquivos estáticos da pasta public
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ===== ROTAS DA API =====
@@ -31,12 +33,13 @@ app.use('/api/auth', authRoutes);
 
 // ===== ROTA RAIZ =====
 app.get('/', (req, res) => {
-  const indexPath = path.join(__dirname, 'public', 'index.html');
-  res.sendFile(indexPath, (err) => {
-    if (err) {
-      res.send('Aplicação Loja Café rodando no Azure!');
-    }
-  });
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// ===== Fallback para rotas não encontradas =====
+// Isso evita o erro "You do not have permission..." ao acessar rotas inexistentes
+app.use((req, res, next) => {
+  res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // ===== TRATAMENTO DE ERROS =====
