@@ -1,42 +1,24 @@
-// public/js/app.js
-
 let cafes = [];
 let carrinho = JSON.parse(localStorage.getItem('carrinho')) || [];
 let filtroAtual = 'Todos';
 let enderecoSelecionado = null;
 
-// ===== CARREGAR CAFÉS (estava faltando!) =====
+// -------- AJAX CAFÉS -----------
 async function getCafes() {
-  try {
-    const response = await fetch('/api/cafes');
-    if (!response.ok) {
-      console.error('Erro ao buscar cafés:', response.status);
-      return [];
-    }
-    const data = await response.json();
-    console.log('Cafés carregados:', data);
-    return data;
-  } catch (error) {
-    console.error('Erro ao buscar cafés:', error);
-    return [];
-  }
+  const response = await fetch('/api/cafes');
+  return response.ok ? await response.json() : [];
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  try {
-    cafes = await getCafes();
-    renderizarProdutos(cafes);
-    atualizarTotalCarrinho();
-  } catch (error) {
-    console.error('Erro ao carregar cafés:', error);
-    alert('Não foi possível carregar os produtos.');
-  }
+  cafes = await getCafes();
+  renderizarProdutos(cafes);
+  atualizarTotalCarrinho();
 });
 
+// -------- RENDER E FILTRO ---------
 function renderizarProdutos(produtos) {
   const grid = document.getElementById('gridProdutos');
   grid.innerHTML = '';
-
   produtos.forEach(cafe => {
     const precoNum = Number(cafe.preco);
     const precoFormatado = isNaN(precoNum) ? '0.00' : precoNum.toFixed(2);
@@ -62,29 +44,19 @@ function renderizarProdutos(produtos) {
 
 function filtrarPorCategoria(categoria, event) {
   filtroAtual = categoria;
-
-  document.querySelectorAll('.filtro-btn').forEach(btn => {
-    btn.classList.remove('active');
-  });
+  document.querySelectorAll('.filtro-btn').forEach(btn => btn.classList.remove('active'));
   if (event) event.target.classList.add('active');
-
-  if (categoria === 'Todos') {
-    renderizarProdutos(cafes);
-  } else {
-    const filtrados = cafes.filter(cafe => cafe.categoria === categoria);
-    renderizarProdutos(filtrados);
-  }
+  renderizarProdutos(categoria === 'Todos' ? cafes : cafes.filter(c => c.categoria === categoria));
 }
 
+// -------- CARRINHO ---------
 function adicionarAoCarrinho(id, nome, preco) {
   const item = carrinho.find(item => item.id === id);
-
   if (item) {
     item.quantidade++;
   } else {
     carrinho.push({ id, nome, preco, quantidade: 1 });
   }
-
   salvarCarrinho();
   atualizarTotalCarrinho();
   alert(`${nome} adicionado ao carrinho!`);
@@ -102,119 +74,211 @@ function atualizarTotalCarrinho() {
   }
 }
 
-// ===== ABRIR CARRINHO (estava faltando!) =====
+// -------- MODAL CARRINHO E CHECKOUT ---------
 function abrirCarrinho() {
-  console.log('📦 Abrindo carrinho...');
-  console.log('Itens:', carrinho);
-
+  const modal = document.getElementById('modalCarrinho');
+  const itensDiv = document.getElementById('itensCarrinho');
+  const totalDiv = document.getElementById('totalPrice');
+  itensDiv.innerHTML = '';
   if (carrinho.length === 0) {
-    alert('Seu carrinho está vazio!');
+    itensDiv.innerHTML = '<p style="text-align: center; color: #999;">Carrinho vazio</p>';
+    totalDiv.textContent = '0.00';
+    modal.style.display = 'block';
     return;
   }
-
-  // Mostrar resumo do carrinho
-  let resumo = 'Itens no carrinho:\n\n';
   let total = 0;
-
-  carrinho.forEach(item => {
+  carrinho.forEach((item, index) => {
     const subtotal = item.preco * item.quantidade;
-    resumo += `${item.nome} x${item.quantidade} = R$ ${subtotal.toFixed(2)}\n`;
     total += subtotal;
+    const itemDiv = document.createElement('div');
+    itemDiv.className = 'item-carrinho';
+    itemDiv.innerHTML = `
+      <div class="item-info">
+        <div class="item-nome">${item.nome}</div>
+        <div class="item-quantidade">Quantidade: ${item.quantidade}</div>
+      </div>
+      <div class="item-preco">R$ ${subtotal.toFixed(2)}</div>
+      <button class="item-remove" onclick="removerDoCarrinho(${index})">❌</button>
+    `;
+    itensDiv.appendChild(itemDiv);
   });
-
-  resumo += `\n---\nTOTAL: R$ ${total.toFixed(2)}`;
-  alert(resumo);
-
-  // Redirecionar para checkout
-  window.location.href = '/checkout.html';
+  totalDiv.textContent = total.toFixed(2);
+  modal.style.display = 'block';
 }
 
-// ===== FINALIZAR PEDIDO =====
-async function finalizarPedido() {
-  console.log('🛒 Finalizando pedido...');
+function fecharCarrinho() {
+  document.getElementById('modalCarrinho').style.display = 'none';
+}
 
+function removerDoCarrinho(index) {
+  carrinho.splice(index, 1);
+  salvarCarrinho();
+  atualizarTotalCarrinho();
+  abrirCarrinho();
+}
+
+// ---- Checkout -----
+function irParaCheckout() {
+  if (!verificarLogin()) {
+    return;
+  }
   if (carrinho.length === 0) {
     alert('Seu carrinho está vazio!');
     return;
   }
+  fecharCarrinho();
+  abrirCheckout();
+}
 
-  const token = localStorage.getItem('authToken');
-  if (!token) {
-    alert('Você precisa estar logado para fazer um pedido.');
-    window.location.href = '/index.html';
-    return;
-  }
+async function abrirCheckout() {
+  const modal = document.getElementById('modalCheckout');
+  modal.style.display = 'block';
+  await carregarEnderecos();
+}
 
-  const enderecoId = document.getElementById('enderecoId')?.value;
-  const formaPagamento = document.getElementById('formaPagamento')?.value || 'credito';
+function fecharCheckout() {
+  document.getElementById('modalCheckout').style.display = 'none';
+}
 
-  if (!enderecoId) {
-    alert('Por favor, selecione um endereço de entrega.');
-    return;
-  }
-
-  const pedidoData = {
-    endereco_id: parseInt(enderecoId),
-    forma_pagamento: formaPagamento,
-    itens: carrinho.map(item => ({
-      cafe_id: item.id,
-      quantidade: item.quantidade,
-      preco: item.preco
-    }))
-  };
-
-  console.log('📝 Dados do pedido:', pedidoData);
-
+// --- Endereços ---
+async function carregarEnderecos() {
   try {
+    const response = await fetch('/api/enderecos', {
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`
+      }
+    });
+    const listaDiv = document.getElementById('listaEnderecos');
+    listaDiv.innerHTML = '';
+    if (!response.ok) {
+      listaDiv.innerHTML = '<p style="color: #999;">Erro ao carregar endereços</p>';
+      return;
+    }
+    const enderecos = await response.json();
+    if (!enderecos.length) {
+      listaDiv.innerHTML = '<p style="color: #999;">Nenhum endereço cadastrado</p>';
+    } else {
+      enderecos.forEach(endereco => {
+        const enderecoDiv = document.createElement('div');
+        enderecoDiv.className = 'endereco-item';
+        enderecoDiv.innerHTML = `
+          <strong>${endereco.rua}, ${endereco.numero}</strong><br>
+          ${endereco.bairro} - ${endereco.cidade}, ${endereco.estado}
+        `;
+        enderecoDiv.onclick = () => selecionarEndereco(endereco.id, enderecoDiv);
+        listaDiv.appendChild(enderecoDiv);
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao carregar endereços:', error);
+  }
+}
+
+function selecionarEndereco(id, elemento) {
+  document.querySelectorAll('.endereco-item').forEach(el => el.classList.remove('selecionado'));
+  elemento.classList.add('selecionado');
+  enderecoSelecionado = id;
+}
+
+function mostrarFormEndereco() {
+  document.getElementById('formNovoEndereco').style.display = 'block';
+}
+
+function esconderFormEndereco() {
+  document.getElementById('formNovoEndereco').style.display = 'none';
+}
+
+async function handleSalvarEndereco(event) {
+  event.preventDefault();
+  const endereco = {
+    cep: document.getElementById('cep').value,
+    rua: document.getElementById('rua').value,
+    numero: document.getElementById('numero').value,
+    complemento: document.getElementById('complemento').value,
+    bairro: document.getElementById('bairro').value,
+    cidade: document.getElementById('cidade').value,
+    estado: document.getElementById('estado').value
+  };
+  try {
+    const response = await fetch('/api/enderecos', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify(endereco)
+    });
+    if (response.ok) {
+      alert('Endereço salvo com sucesso!');
+      document.getElementById('formNovoEndereco').reset();
+      esconderFormEndereco();
+      await carregarEnderecos();
+    } else {
+      const errorData = await response.json();
+      alert('Erro ao salvar endereço: ' + (errorData.error || 'Erro desconhecido'));
+    }
+  } catch (error) {
+    alert('Erro inesperado: ' + error.message);
+  }
+}
+
+// ---- Finalizar Pedido ----
+async function finalizarPedido() {
+  if (!enderecoSelecionado) {
+    alert('Selecione um endereço de entrega!');
+    return;
+  }
+  try {
+    const pedido = {
+      endereco_id: enderecoSelecionado,
+      forma_pagamento: document.querySelector('input[name="pagamento"]:checked').value || 'credito',
+      itens: carrinho.map(item => ({
+        cafe_id: item.id,
+        quantidade: item.quantidade,
+        preco: item.preco
+      }))
+    };
     const response = await fetch('/api/pedidos', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${getAuthToken()}`
       },
-      body: JSON.stringify(pedidoData)
+      body: JSON.stringify(pedido)
     });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        alert('Sua sessão expirou. Faça login novamente.');
-        localStorage.removeItem('authToken');
-        window.location.href = '/index.html';
-        return;
-      }
-      const errorData = await response.json();
-      alert('Erro ao criar pedido: ' + errorData.error);
-      return;
+    const data = await response.json();
+    if (response.ok) {
+      alert(`Pedido realizado!\n#${data.pedido_id}\nTotal: R$ ${data.total.toFixed(2)}`);
+      carrinho = [];
+      salvarCarrinho();
+      atualizarTotalCarrinho();
+      fecharCheckout();
+    } else {
+      alert('Erro ao finalizar pedido: ' + data.error);
     }
-
-    const result = await response.json();
-    console.log('✅ Pedido criado:', result);
-
-    alert(`Pedido #${result.pedido_id} criado com sucesso!\nTotal: R$ ${result.total.toFixed(2)}`);
-    
-    carrinho = [];
-    salvarCarrinho();
-    atualizarTotalCarrinho();
-    window.location.href = '/index.html';
   } catch (error) {
-    console.error('❌ Erro ao finalizar pedido:', error);
-    alert('Erro ao criar pedido: ' + error.message);
+    alert('Erro inesperado: ' + error.message);
   }
 }
 
-// ===== REMOVER DO CARRINHO =====
-function removerDoCarrinho(id) {
-  carrinho = carrinho.filter(item => item.id !== id);
-  salvarCarrinho();
-  atualizarTotalCarrinho();
+// -------- UTIL ---------
+function getAuthToken() {
+  return localStorage.getItem('authToken');
 }
 
-// ===== LIMPAR CARRINHO =====
-function limparCarrinho() {
-  if (confirm('Tem certeza que deseja limpar o carrinho?')) {
-    carrinho = [];
-    salvarCarrinho();
-    atualizarTotalCarrinho();
-    alert('Carrinho limpo!');
+function verificarLogin() {
+  if (!getAuthToken()) {
+    alert('Faça login para finalizar seu pedido.');
+    window.location.href = '/index.html';
+    return false;
   }
+  return true;
 }
+
+// Fechar modais ao clicar fora
+window.onclick = function(event) {
+  ['modalCarrinho','modalLogin','modalCheckout'].forEach(id=>{
+    const modal = document.getElementById(id);
+    if (event.target === modal) modal.style.display = 'none';
+  });
+};
