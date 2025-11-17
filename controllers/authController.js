@@ -1,21 +1,17 @@
-// controllers/authController.js - COM SUPORTE A USERNAME
+// controllers/authController.js - TEMPORÁRIO (SEM BCRYPTJS)
 
 const sql = require('mssql');
 const pool = require('../config/database');
-const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 console.log('✅ authController.js carregado');
 
-// LOGIN - Aceita username OU email
 exports.login = async (req, res) => {
   try {
     console.log('🔑 [AUTH LOGIN] Recebendo requisição...');
     console.log('🔑 [AUTH LOGIN] Body:', req.body);
 
     const { username, email, password, senha } = req.body;
-
-    // Aceita username E password OU email E senha
     const loginField = username || email;
     const loginPassword = password || senha;
 
@@ -26,7 +22,6 @@ exports.login = async (req, res) => {
 
     console.log('🔍 [AUTH LOGIN] Buscando usuário...');
     
-    // Busca por username OU email
     const result = await pool.request()
       .input('loginField', sql.VarChar, loginField)
       .query(`
@@ -44,7 +39,9 @@ exports.login = async (req, res) => {
     console.log('✅ [AUTH LOGIN] Usuário encontrado:', usuario.username);
 
     console.log('🔐 [AUTH LOGIN] Verificando senha...');
-    const senhaValida = await bcryptjs.compare(loginPassword, usuario.password);
+    // ⚠️ COMPARAÇÃO SIMPLES (SEM BCRYPTJS)
+    const senhaValida = loginPassword === usuario.password;
+    console.log('🔐 [AUTH LOGIN] Senha válida?', senhaValida ? 'SIM' : 'NÃO');
 
     if (!senhaValida) {
       console.log('❌ [AUTH LOGIN] Senha inválida');
@@ -76,7 +73,6 @@ exports.login = async (req, res) => {
   }
 };
 
-// VERIFY TOKEN
 exports.verifyToken = (req, res) => {
   try {
     console.log('🔐 [VERIFY] Verificando token...');
@@ -98,7 +94,6 @@ exports.verifyToken = (req, res) => {
   }
 };
 
-// LOGOUT
 exports.logout = (req, res) => {
   try {
     console.log('🚪 [LOGOUT] Usuário:', req.user?.email);
@@ -108,7 +103,6 @@ exports.logout = (req, res) => {
   }
 };
 
-// REFRESH TOKEN
 exports.refreshToken = (req, res) => {
   try {
     console.log('🔄 [REFRESH] Renovando token...');
