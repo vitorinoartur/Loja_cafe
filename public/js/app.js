@@ -1,12 +1,30 @@
 // public/js/app.js
+
 let cafes = [];
 let carrinho = JSON.parse(localStorage.getItem('carrinho')) || [];
 let filtroAtual = 'Todos';
-let enderecosSelecionado = null;
+let enderecoSelecionado = null;
+
+// ===== CARREGAR CAFÉS (estava faltando!) =====
+async function getCafes() {
+  try {
+    const response = await fetch('/api/cafes');
+    if (!response.ok) {
+      console.error('Erro ao buscar cafés:', response.status);
+      return [];
+    }
+    const data = await response.json();
+    console.log('Cafés carregados:', data);
+    return data;
+  } catch (error) {
+    console.error('Erro ao buscar cafés:', error);
+    return [];
+  }
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   try {
-    cafes = await getCafes(); // precisa estar definida em outro script
+    cafes = await getCafes();
     renderizarProdutos(cafes);
     atualizarTotalCarrinho();
   } catch (error) {
@@ -78,7 +96,125 @@ function salvarCarrinho() {
 
 function atualizarTotalCarrinho() {
   const totalItens = carrinho.reduce((sum, item) => sum + item.quantidade, 0);
-  document.getElementById('totalCarrinho').textContent = totalItens;
+  const totalEl = document.getElementById('totalCarrinho');
+  if (totalEl) {
+    totalEl.textContent = totalItens;
+  }
 }
 
-// ... (restante do código igual ao seu, mas com try/catch nos fetch)
+// ===== ABRIR CARRINHO (estava faltando!) =====
+function abrirCarrinho() {
+  console.log('📦 Abrindo carrinho...');
+  console.log('Itens:', carrinho);
+
+  if (carrinho.length === 0) {
+    alert('Seu carrinho está vazio!');
+    return;
+  }
+
+  // Mostrar resumo do carrinho
+  let resumo = 'Itens no carrinho:\n\n';
+  let total = 0;
+
+  carrinho.forEach(item => {
+    const subtotal = item.preco * item.quantidade;
+    resumo += `${item.nome} x${item.quantidade} = R$ ${subtotal.toFixed(2)}\n`;
+    total += subtotal;
+  });
+
+  resumo += `\n---\nTOTAL: R$ ${total.toFixed(2)}`;
+  alert(resumo);
+
+  // Redirecionar para checkout
+  window.location.href = '/checkout.html';
+}
+
+// ===== FINALIZAR PEDIDO =====
+async function finalizarPedido() {
+  console.log('🛒 Finalizando pedido...');
+
+  if (carrinho.length === 0) {
+    alert('Seu carrinho está vazio!');
+    return;
+  }
+
+  const token = localStorage.getItem('authToken');
+  if (!token) {
+    alert('Você precisa estar logado para fazer um pedido.');
+    window.location.href = '/index.html';
+    return;
+  }
+
+  const enderecoId = document.getElementById('enderecoId')?.value;
+  const formaPagamento = document.getElementById('formaPagamento')?.value || 'credito';
+
+  if (!enderecoId) {
+    alert('Por favor, selecione um endereço de entrega.');
+    return;
+  }
+
+  const pedidoData = {
+    endereco_id: parseInt(enderecoId),
+    forma_pagamento: formaPagamento,
+    itens: carrinho.map(item => ({
+      cafe_id: item.id,
+      quantidade: item.quantidade,
+      preco: item.preco
+    }))
+  };
+
+  console.log('📝 Dados do pedido:', pedidoData);
+
+  try {
+    const response = await fetch('/api/pedidos', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(pedidoData)
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        alert('Sua sessão expirou. Faça login novamente.');
+        localStorage.removeItem('authToken');
+        window.location.href = '/index.html';
+        return;
+      }
+      const errorData = await response.json();
+      alert('Erro ao criar pedido: ' + errorData.error);
+      return;
+    }
+
+    const result = await response.json();
+    console.log('✅ Pedido criado:', result);
+
+    alert(`Pedido #${result.pedido_id} criado com sucesso!\nTotal: R$ ${result.total.toFixed(2)}`);
+    
+    carrinho = [];
+    salvarCarrinho();
+    atualizarTotalCarrinho();
+    window.location.href = '/index.html';
+  } catch (error) {
+    console.error('❌ Erro ao finalizar pedido:', error);
+    alert('Erro ao criar pedido: ' + error.message);
+  }
+}
+
+// ===== REMOVER DO CARRINHO =====
+function removerDoCarrinho(id) {
+  carrinho = carrinho.filter(item => item.id !== id);
+  salvarCarrinho();
+  atualizarTotalCarrinho();
+}
+
+// ===== LIMPAR CARRINHO =====
+function limparCarrinho() {
+  if (confirm('Tem certeza que deseja limpar o carrinho?')) {
+    carrinho = [];
+    salvarCarrinho();
+    atualizarTotalCarrinho();
+    alert('Carrinho limpo!');
+  }
+}
